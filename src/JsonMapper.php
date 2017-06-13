@@ -226,7 +226,7 @@ class JsonMapper
                 continue;
             }
 
-            //FIXME: check if type exists, give detailled error message if not
+            //FIXME: check if type exists, give detailed error message if not
             if ($type === '') {
                 throw new JsonMapper_Exception(
                     'Empty type at property "'
@@ -236,12 +236,14 @@ class JsonMapper
 
             $array = null;
             $subtype = null;
-            if (substr($type, -2) == '[]') {
+            if ($this->isArrayOfTypes($type)) {
                 //array
-                $array = array();
+                $array = [];
                 $subtype = substr($type, 0, -2);
             } else if (substr($type, -1) == ']') {
                 list($proptype, $subtype) = explode('[', substr($type, 0, -1));
+                $subtype = $this->removeNullable($subtype);
+
                 if (!$this->isSimpleType($proptype)) {
                     $proptype = $this->getFullNamespace($proptype, $strNs);
                 }
@@ -267,14 +269,8 @@ class JsonMapper
                     );
                 }
 
-                $cleanSubtype = $this->removeNullable($subtype);
-                if (!$this->isSimpleType($cleanSubtype)
-                    && $cleanSubtype !== null
-                ) {
-                    $subtype = $this->getFullNamespace($cleanSubtype, $strNs);
-                }
-                $child = $this->mapArray($jvalue, $array, $subtype);
-            } else if ($this->isFlatType(gettype($jvalue))) {
+                $child = $this->mapArray($jvalue, $array, $subtype, $strNs);
+            } elseif ($this->isFlatType(gettype($jvalue))) {
                 //use constructor parameter if we have a class
                 // but only a flat type (i.e. string, int)
                 if ($this->bStrictObjectTypeChecking) {
@@ -358,16 +354,19 @@ class JsonMapper
      *                      Supports class names and simple types
      *                      like "string" and nullability "string|null".
      *                      Pass "null" to not convert any values
+     * @param string $strNs Namespace
      *
      * @return mixed Mapped $array is returned
      */
-    public function mapArray($json, $array, $class = null)
+    public function mapArray($json, $array, $class = null, $strNs)
     {
         foreach ($json as $key => $jvalue) {
             $key = $this->getSafeName($key);
             if ($class === null) {
                 $array[$key] = $jvalue;
-            } else if ($this->isFlatType(gettype($jvalue))) {
+            } elseif ($this->isArrayOfTypes($class)) {
+                $array[$key] = $this->mapArray($jvalue, [], substr($class, 0, -2), $strNs);
+            } elseif ($this->isFlatType(gettype($jvalue))) {
                 //use constructor parameter if we have a class
                 // but only a flat type (i.e. string, int)
                 if ($jvalue === null) {
@@ -378,13 +377,17 @@ class JsonMapper
                         $array[$key] = $jvalue;
                     } else {
                         $array[$key] = $this->createInstance(
-                            $class, true, $jvalue
+                            $this->getFullNamespace($class, $strNs),
+                            true,
+                            $jvalue
                         );
                     }
                 }
             } else {
                 $array[$key] = $this->map(
-                    $jvalue, $this->createInstance($class)
+                    $jvalue, $this->createInstance(
+                        $this->getFullNamespace($class, $strNs)
+                    )
                 );
             }
         }
@@ -492,6 +495,7 @@ class JsonMapper
         $arrTypes = [];
         $arrMatch = [];
         foreach(explode('|', $type) as $strType) {
+            $strType = trim($strType);
             $strArraySection = '';
             if(preg_match('/(.*?)(\[.*\])$/', $strType, $arrMatch) === 1) {
                 $strType = $arrMatch[1];
@@ -681,11 +685,11 @@ class JsonMapper
      */
     protected function isSimpleType($type)
     {
-        return $type == 'string'
-            || $type == 'boolean' || $type == 'bool'
-            || $type == 'integer' || $type == 'int'
-            || $type == 'double' || $type == 'float'
-            || $type == 'array' || $type == 'object';
+        return $type === 'string'
+            || $type === 'boolean' || $type === 'bool'
+            || $type === 'integer' || $type === 'int'
+            || $type === 'double'  || $type === 'float'
+            || $type === 'array'   || $type === 'object';
     }
 
     /**
@@ -725,6 +729,19 @@ class JsonMapper
     }
 
     /**
+     * Returns true if type is an array of elements
+     * (bracket notation)
+     *
+     * @param string $strType type to be matched
+     *
+     * @return bool
+     */
+    protected function isArrayOfTypes($strType)
+    {
+        return(substr($strType, -2) === '[]');
+    }
+
+    /**
      * Checks if the given type is nullable
      *
      * @param string $type type name from the phpdoc param
@@ -748,9 +765,9 @@ class JsonMapper
         if ($type === null) {
             return null;
         }
-        return substr(
-            str_ireplace('|null|', '|', '|' . $type . '|'),
-            1, -1
+        return trim(
+            str_replace('|null|', '|', '|' . $type . '|'),
+            '|'
         );
     }
 

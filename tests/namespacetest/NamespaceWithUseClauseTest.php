@@ -34,6 +34,37 @@ class NamespaceWithUseClauseTest extends \PHPUnit_Framework_TestCase
         $this->assertInstanceOf('\namespacetest\Unit', $res->units[0]);
     }
 
+
+    public function testMapClassMatrixNamespace()
+    {
+        $mapper = new \JsonMapper();
+        $json = '{"unit_matrix":[[{"value":"1.2"}, {"value":"2.2"}], [{"value":"3.2"}, {"value":"4.2"}]]}';
+        /** @var UnitDataWithUseClause $res */
+        $res = $mapper->map(json_decode($json), new UnitDataWithUseClause());
+        $this->assertInstanceOf('\namespacetest\UnitDataWithUseClause', $res);
+        $this->assertInstanceOf('\namespacetest\Unit', $res->unit_matrix[1][1]);
+    }
+
+    public function testMapIntMatrixNamespace()
+    {
+        $mapper = new \JsonMapper();
+        $json = '{"int_matrix":[[1, 2], [3, 4]]}';
+        /** @var UnitDataWithUseClause $res */
+        $res = $mapper->map(json_decode($json), new UnitDataWithUseClause());
+        $this->assertInstanceOf('\namespacetest\UnitDataWithUseClause', $res);
+        $this->assertEquals(3, $res->int_matrix[1][0]);
+    }
+
+    public function testMultidimensionalArrayNamespace()
+    {
+        $mapper = new \JsonMapper();
+        $json = '{"multidimensional_array":[[[[{"name": "John Smith"},{"name": "Scarlet Johansson"}]]], []]}';
+        /** @var UnitDataWithUseClause $res */
+        $res = $mapper->map(json_decode($json), new UnitDataWithUseClause());
+        $this->assertInstanceOf('\namespacetest\UnitDataWithUseClause', $res);
+        $this->assertInstanceOf('\namespacetest\model\User', $res->multidimensional_array[0][0][0][0]);
+        $this->assertEquals('Scarlet Johansson', $res->multidimensional_array[0][0][0][1]->name);
+    }
     public function testMapSimpleStringArrayNamespace()
     {
         $mapper = new \JsonMapper();

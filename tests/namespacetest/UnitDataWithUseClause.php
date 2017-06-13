@@ -24,6 +24,21 @@ class UnitDataWithUseClause
     public $units;
 
     /**
+     * @var Unit[][]
+     */
+    public $unit_matrix;
+
+    /**
+     * @var int[][]
+     */
+    public $int_matrix;
+
+    /**
+     * @var User[][][][]
+     */
+    public $multidimensional_array;
+
+    /**
      * @var string[]
      */
     public $messages;
