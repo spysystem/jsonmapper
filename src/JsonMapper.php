@@ -236,9 +236,9 @@ class JsonMapper
 
             $array = null;
             $subtype = null;
-            if ($this->isArrayOfTypes($type)) {
+            if ($this->isArrayOfType($type)) {
                 //array
-                $array = [];
+                $array = array();
                 $subtype = substr($type, 0, -2);
             } else if (substr($type, -1) == ']') {
                 list($proptype, $subtype) = explode('[', substr($type, 0, -1));
@@ -364,7 +364,7 @@ class JsonMapper
             $key = $this->getSafeName($key);
             if ($class === null) {
                 $array[$key] = $jvalue;
-            } elseif ($this->isArrayOfTypes($class)) {
+            } elseif ($this->isArrayOfType($class)) {
                 $array[$key] = $this->mapArray($jvalue, [], substr($class, 0, -2), $strNs);
             } elseif ($this->isFlatType(gettype($jvalue))) {
                 //use constructor parameter if we have a class
@@ -736,7 +736,7 @@ class JsonMapper
      *
      * @return bool
      */
-    protected function isArrayOfTypes($strType)
+    protected function isArrayOfType($strType)
     {
         return(substr($strType, -2) === '[]');
     }
