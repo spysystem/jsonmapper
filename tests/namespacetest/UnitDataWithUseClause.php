@@ -5,6 +5,7 @@ use namespacetest\model;
 use namespacetest\model\User;
 use namespacetest\model\UserList;
 use othernamespace\Foo;
+use Foo2;
 
 /**
  * Class UnitDataWithUseClause
@@ -17,6 +18,11 @@ class UnitDataWithUseClause
      * @var \ArrayObject[Unit]
      */
     public $data;
+
+    /**
+     * @var Foo2
+     */
+    public $foo2;
 
     /**
      * @var Unit[]

@@ -8,7 +8,7 @@ require_once __DIR__ . '/model/MyArrayObject.php';
 require_once __DIR__ . '/model/User.php';
 require_once __DIR__ . '/model/UserList.php';
 require_once __DIR__ . '/../othernamespace/Foo.php';
-
+require_once __DIR__ . '/../Foo2.php';
 /**
  * Class NamespaceWithUseClauseTest
  *
@@ -38,7 +38,8 @@ class NamespaceWithUseClauseTest extends \PHPUnit_Framework_TestCase
     public function testMapClassMatrixNamespace()
     {
         $mapper = new \JsonMapper();
-        $json = '{"unit_matrix":[[{"value":"1.2"}, {"value":"2.2"}], [{"value":"3.2"}, {"value":"4.2"}]]}';
+        $json =
+            '{"unit_matrix":[[{"value":"1.2"}, {"value":"2.2"}], [{"value":"3.2"}, {"value":"4.2"}]]}';
         /** @var UnitDataWithUseClause $res */
         $res = $mapper->map(json_decode($json), new UnitDataWithUseClause());
         $this->assertInstanceOf('\namespacetest\UnitDataWithUseClause', $res);
@@ -58,13 +59,28 @@ class NamespaceWithUseClauseTest extends \PHPUnit_Framework_TestCase
     public function testMultidimensionalArrayNamespace()
     {
         $mapper = new \JsonMapper();
-        $json = '{"multidimensional_array":[[[[{"name": "John Smith"},{"name": "Scarlet Johansson"}]]], []]}';
+        $json =
+            '{"multidimensional_array":[[[[{"name": "John Smith"},{"name": "Scarlet Johansson"}]]], []]}';
         /** @var UnitDataWithUseClause $res */
         $res = $mapper->map(json_decode($json), new UnitDataWithUseClause());
         $this->assertInstanceOf('\namespacetest\UnitDataWithUseClause', $res);
-        $this->assertInstanceOf('\namespacetest\model\User', $res->multidimensional_array[0][0][0][0]);
-        $this->assertEquals('Scarlet Johansson', $res->multidimensional_array[0][0][0][1]->name);
+        $this->assertInstanceOf('\namespacetest\model\User',
+            $res->multidimensional_array[0][0][0][0]);
+        $this->assertEquals('Scarlet Johansson',
+            $res->multidimensional_array[0][0][0][1]->name);
     }
+
+    public function testMapClassWithNoNamespace()
+    {
+        $mapper = new \JsonMapper();
+        $json = '{"foo2":{"name": "John Smith"}}';
+        /** @var UnitDataWithUseClause $res */
+        $res = $mapper->map(json_decode($json), new UnitDataWithUseClause());
+        $this->assertInstanceOf('\namespacetest\UnitDataWithUseClause', $res);
+        $this->assertInstanceOf('Foo2', $res->foo2);
+        $this->assertEquals('John Smith', $res->foo2->name);
+    }
+
     public function testMapSimpleStringArrayNamespace()
     {
         $mapper = new \JsonMapper();

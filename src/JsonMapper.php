@@ -112,9 +112,10 @@ class JsonMapper
     protected $arInspectedClasses = array();
 
     /**
-     * Runtime cache for use clauses. Consists of an array of arrays, where the index for the first level is
-     * the full class name. Each sub-array will contain the "use" clauses found on the file regarding that
-     * class. This expects that the class respects PSR-1, which means one single class per file, and thus one
+     * Runtime cache for use clauses. Consists of an array of arrays, where the
+     * index for the first level is the full class name. Each sub-array will contain
+     * the "use" clauses found on the file regarding that class. This expects that
+     * the class respects PSR-1, which means one single class per file, and thus one
      * single namespace. http://www.php-fig.org/psr/psr-1/#namespace-and-class-names
      *
      * @var string[][]
@@ -365,7 +366,10 @@ class JsonMapper
             if ($class === null) {
                 $array[$key] = $jvalue;
             } elseif ($this->isArrayOfType($class)) {
-                $array[$key] = $this->mapArray($jvalue, [], substr($class, 0, -2), $strNs);
+                $array[$key] = $this->mapArray($jvalue,
+                    [],
+                    substr($class, 0, -2), $strNs
+                );
             } elseif ($this->isFlatType(gettype($jvalue))) {
                 //use constructor parameter if we have a class
                 // but only a flat type (i.e. string, int)
@@ -483,27 +487,29 @@ class JsonMapper
 
 
     /**
-     * Splits the $type string from the phpdoc, and finds the FQN for each type found
+     * Splits the $type string from the phpdoc, and finds the FQN for each type
+     * found
      *
-     * @param ReflectionClass $rc
-     * @param string          $type
+     * @param ReflectionClass $rc Reflection class to check
+     * @param string          $type source type
      *
      * @return string
      */
-    protected function getFullyQualifiedType(ReflectionClass $rc, string $type)
+    protected function getFullyQualifiedType(ReflectionClass $rc, $type)
     {
         $arrTypes = [];
         $arrMatch = [];
-        foreach(explode('|', $type) as $strType) {
+        foreach (explode('|', $type) as $strType) {
             $strType = trim($strType);
             $strArraySection = '';
-            if(preg_match('/(.*?)(\[.*\])$/', $strType, $arrMatch) === 1) {
+            if (preg_match('/(.*?)(\[.*\])$/', $strType, $arrMatch) === 1) {
                 $strType = $arrMatch[1];
                 $strArraySection = $arrMatch[2];
             }
             $strFQNType = $this->getFQN($rc, $strType);
-            if($strArraySection !== '') {
-                if(preg_match('/^\[([\w]+)\]$/', $strArraySection, $arrMatch) === 1) {
+            if ($strArraySection !== '') {
+                if (preg_match('/^\[([\w]+)\]$/',
+                        $strArraySection, $arrMatch) === 1) {
                     $strArraySection = '['.$this->getFQN($rc, $arrMatch[1]).']';
                 }
             }
@@ -517,14 +523,14 @@ class JsonMapper
     /**
      * Gets the FQN for a type
      *
-     * @param ReflectionClass $rc
-     * @param string          $strType
+     * @param ReflectionClass $rc Reflection class to check
+     * @param string          $strType source type
      *
      * @return string
      */
-    protected function getFQN(ReflectionClass $rc, string $strType)
+    protected function getFQN(ReflectionClass $rc, $strType)
     {
-        # If type starts with \, no need to append namespaces on it
+        // If type starts with \, no need to append namespaces on it
         if (strpos($strType, '\\') === 0) {
             return $strType;
         }
@@ -534,39 +540,51 @@ class JsonMapper
             return $strType;
         }
 
-        # If there is a perfect match for the type within the use clauses, prepend a \ and return it -
-        # this will guarantee that we get the correct FQN for it, even if it belongs to the root namespace
+        // If there is a perfect match for the type within the use clauses, prepend
+        // a \ and return it - this will guarantee that we get the correct FQN for
+        // it, even if it belongs to the root namespace
         if (array_key_exists($strType, $arrUseClauses)) {
             return '\\' . $strType;
         }
 
-        # If the type contains a relative qualified name, we need to find the first part of if within the 'use'
-        # clauses. To do that, we take the first sub-path of the type and search it within the use clauses. This
-        # should return exactly one match, since PHP does not allow ambiguous class names.
+        // If the type contains a relative qualified name, we need to find the first
+        // part of if within the 'use' clauses. To do that, we take the first
+        // sub-path of the type and search it within the use clauses. This should
+        // return exactly one match, since PHP does not allow ambiguous class names.
         if (strpos($strType, '\\') !== false) {
-            # Gets first sub-path
+            // Gets first sub-path
             $arrExplodedType = explode('\\', $strType, 2);
             $strNSSubPath = $arrExplodedType[0];
-            # Get use clause that end with the found sub-path (There can be only one! #highlanderfeelings)
-            $arrMatchingUseClauses = preg_grep('/^(.*\\\\' . $strNSSubPath . '|' . $strNSSubPath . ')$/', $arrUseClauses);
+            // Get use clause that end with the found sub-path
+            // (There can be only one! #highlanderfeelings)
+            $arrMatchingUseClauses = preg_grep(
+                '/^(.*\\\\' . $strNSSubPath . '|' . $strNSSubPath . ')$/',
+                $arrUseClauses
+            );
             if (count($arrMatchingUseClauses) === 1) {
-                return '\\' . preg_replace('/(.*)' . $strNSSubPath . '$/', '$1', reset($arrMatchingUseClauses)) . $strType;
+                return '\\' . preg_replace('/(.*)' . $strNSSubPath . '$/',
+                        '$1',
+                        reset($arrMatchingUseClauses)) . $strType;
             }
         } else {
-            # The last check against use clauses is when type is a SFQN and its FQN is in the use clauses:
-            $arrMatchingUseClauses = preg_grep('/\\\\'.$strType.'$/', $arrUseClauses);
+            // The last check against use clauses is when type is a SFQN and its FQN
+            // is in the use clauses:
+            $arrMatchingUseClauses =
+                preg_grep('/\\\\'.$strType.'$/', $arrUseClauses);
             if (count($arrMatchingUseClauses) === 1) {
                 return '\\'.reset($arrMatchingUseClauses);
             }
         }
 
-        # If nothing else was triggered, simply return the unchanged type
+        // If nothing else was triggered, simply return the unchanged type
         return $strType;
     }
 
     /**
-     * Finds all "use" clauses inside the class file, and returns a string[] with the found namespace names
-     * @param ReflectionClass $rc
+     * Finds all "use" clauses inside the class file, and returns a string[] with the
+     * found namespace names
+     *
+     * @param ReflectionClass $rc Reflection class to check
      *
      * @return string[]
      */
@@ -575,16 +593,21 @@ class JsonMapper
         $strClassName = $rc->getName();
         if (!array_key_exists($strClassName, $this->arrUseClauses)) {
 
-            $arrLines = file($rc->getFileName(), FILE_SKIP_EMPTY_LINES|FILE_IGNORE_NEW_LINES);
+            $arrLines = file($rc->getFileName(),
+                FILE_SKIP_EMPTY_LINES|FILE_IGNORE_NEW_LINES);
 
             if ($arrLines && count($arrLines)) {
                 $arrUseLines = preg_grep('/^\s*use\s+[\w\\\\]+;/', $arrLines);
 
-                # strip out the 'use ' part
-                $this->arrUseClauses[$strClassName] = preg_replace('/(^\s*use\s+)([\w\\\\]+);/', '$2', $arrUseLines);
+                // strip out the 'use ' part
+                $this->arrUseClauses[$strClassName] = preg_replace(
+                    '/(^\s*use\s+)([\w\\\\]+);/', '$2', $arrUseLines);
 
-                # makes keys match values, so that $arr[x] = x;
-                $this->arrUseClauses[$strClassName] = array_combine($this->arrUseClauses[$strClassName], $this->arrUseClauses[$strClassName]);
+                // makes keys match values, so that $arr[x] = x;
+                $this->arrUseClauses[$strClassName] = array_combine(
+                    $this->arrUseClauses[$strClassName],
+                    $this->arrUseClauses[$strClassName]
+                );
             }
         }
 
@@ -765,9 +788,9 @@ class JsonMapper
         if ($type === null) {
             return null;
         }
-        return trim(
-            str_replace('|null|', '|', '|' . $type . '|'),
-            '|'
+        return substr(
+            str_ireplace('|null|', '|', '|' . $type . '|'),
+            1, -1
         );
     }
 
