@@ -26,6 +26,9 @@ class UnitDataWithUseClause
     /** @var Unit[] */
     public array $units_typed;
 
+    /** @var User[] */
+    public array $users_typed;
+
     /**
      * @var string[]
      */

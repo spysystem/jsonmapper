@@ -43,6 +43,15 @@ class NamespaceWithUseClauseTest extends \PHPUnit\Framework\TestCase
         $this->assertInstanceOf('\namespacetest\Unit', $res->units_typed[0]);
     }
 
+    public function testMapTypedSimpleArrayFromOtherNamespace()
+    {
+        $mapper = new \JsonMapper();
+        $json = '{"users_typed":[{"name":"John Smith"}]}';
+        $res = $mapper->map(json_decode($json), new UnitDataWithUseClause());
+        $this->assertInstanceOf('\namespacetest\UnitDataWithUseClause', $res);
+        $this->assertInstanceOf('\namespacetest\model\User', $res->users_typed[0]);
+    }
+
     public function testMapSimpleStringArrayNamespace()
     {
         $mapper = new \JsonMapper();
