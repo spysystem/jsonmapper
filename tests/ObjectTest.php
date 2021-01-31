@@ -14,6 +14,9 @@ require_once 'JsonMapperTest/Simple.php';
 require_once 'JsonMapperTest/Object.php';
 require_once 'JsonMapperTest/PlainObject.php';
 require_once 'JsonMapperTest/ValueObject.php';
+require_once 'JsonMapperTest/ComplexObject.php';
+require_once 'JsonMapperTest/ObjectConstructor.php';
+require_once 'JsonMapperTest/ObjectConstructorOptional.php';
 
 /**
  * Unit tests for JsonMapper's object handling
@@ -24,7 +27,7 @@ require_once 'JsonMapperTest/ValueObject.php';
  * @license  OSL-3.0 http://opensource.org/licenses/osl-3.0
  * @link     https://github.com/cweiske/jsonmapper
  */
-class ObjectTest extends \PHPUnit_Framework_TestCase
+class ObjectTest extends \PHPUnit\Framework\TestCase
 {
     /**
      * Test for a class name "@var Classname"
@@ -36,7 +39,7 @@ class ObjectTest extends \PHPUnit_Framework_TestCase
             json_decode('{"simple":{"str":"stringvalue"}}'),
             new JsonMapperTest_Simple()
         );
-        $this->assertInternalType('object', $sn->simple);
+        $this->assertIsObject($sn->simple);
         $this->assertInstanceOf('JsonMapperTest_Simple', $sn->simple);
         $this->assertEquals('stringvalue', $sn->simple->str);
     }
@@ -77,6 +80,22 @@ class ObjectTest extends \PHPUnit_Framework_TestCase
         $this->assertSame($valueObject, $sn->getValueObject());
     }
 
+    public function testComplexObject()
+    {
+        $valueObject = new JsonMapperTest_ValueObject('test');
+        $complexObject = new JsonMapperTest_ComplexObject($valueObject);
+        $jm = new JsonMapper();
+        $sn = $jm->map(
+            json_decode(json_encode($complexObject)),
+            (new ReflectionClass(JsonMapperTest_ComplexObject::class))->newInstanceWithoutConstructor()
+        );
+
+        $this->assertEquals(
+            $complexObject->valueObject->getPublicValue(),
+            $sn->valueObject->getPublicValue()
+        );
+    }
+
     public function testStrictTypeCheckingObject()
     {
         $jm = new JsonMapper();
@@ -86,17 +105,15 @@ class ObjectTest extends \PHPUnit_Framework_TestCase
             new JsonMapperTest_Object()
         );
 
-        $this->assertInternalType('object', $sn->pPlainObject);
+        $this->assertIsObject($sn->pPlainObject);
         $this->assertInstanceOf('JsonMapperTest_PlainObject', $sn->pPlainObject);
         $this->assertEquals('abc', $sn->pPlainObject->pStr);
     }
 
-    /**
-     * @expectedException JsonMapper_Exception
-     * @expectedExceptionMessage JSON property "pValueObject" must be an object, string given
-     */
     public function testStrictTypeCheckingObjectError()
     {
+        $this->expectException(JsonMapper_Exception::class);
+        $this->expectExceptionMessage('JSON property "pValueObject" must be an object, string given');
         $jm = new JsonMapper();
         $jm->bStrictObjectTypeChecking = true;
         $sn = $jm->map(
@@ -146,35 +163,58 @@ class ObjectTest extends \PHPUnit_Framework_TestCase
 
     /**
      * Test for "@var object" with null value
-     *
-     * @expectedException JsonMapper_Exception
-     * @expectedExceptionMessage JSON property "pValueObject" in class "JsonMapperTest_Object" must not be NULL
      */
     public function testObjectInvalidNull()
     {
+        $this->expectException(JsonMapper_Exception::class);
+        $this->expectExceptionMessage('JSON property "pValueObject" in class "JsonMapperTest_Object" must not be NULL');
         $jm = new JsonMapper();
         $sn = $jm->map(
             json_decode('{"pValueObject":null}'),
             new JsonMapperTest_Object()
         );
-        $this->assertInternalType('null', $sn->pValueObjectNullable);
+        $this->assertNull($sn->pValueObjectNullable);
     }
 
-    public function testClassMap()
+    /**
+     * Test for "@var string" with object value
+     */
+    public function testObjectInsteadOfString()
     {
+        $this->expectException(JsonMapper_Exception::class);
+        $this->expectExceptionMessage('JSON property "pString" in class "JsonMapperTest_Object" is an object and cannot be converted to a string');
         $jm = new JsonMapper();
-        $jm->classMap['JsonMapperTest_PlainObject'] = 'DateTime';
         $sn = $jm->map(
-            json_decode('{"pPlainObject":"2016-04-14T23:15:42+02:00"}'),
+            json_decode('{"pString":{"key":"val"}}'),
             new JsonMapperTest_Object()
         );
+        $this->assertNull($sn->pValueObjectNullable);
+    }
 
-        $this->assertInternalType('object', $sn->pPlainObject);
-        $this->assertInstanceOf('DateTime', $sn->pPlainObject);
-        $this->assertEquals(
-            '2016-04-14T23:15:42+02:00',
-            $sn->pPlainObject->format('c')
+    public function testConstructorWithoutParams()
+    {
+        $jm = new JsonMapper();
+        $json = '[{"id":1}]';
+        $objs = $jm->mapArray(
+            json_decode($json),
+            [],
+            JsonMapperTest_ObjectConstructor::class
         );
+
+        $this->assertEquals('bar', $objs[0]->foo);
+    }
+
+    public function testConstructorWithOptionalParams()
+    {
+        $jm = new JsonMapper();
+        $json = '[{"id":1}]';
+        $objs = $jm->mapArray(
+            json_decode($json),
+            [],
+            JsonMapperTest_ObjectConstructorOptional::class
+        );
+
+        $this->assertEquals('optional', $objs[0]->foo);
     }
 }
 ?>

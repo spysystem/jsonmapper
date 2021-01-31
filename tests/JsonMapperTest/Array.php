@@ -4,7 +4,6 @@
  *
  * PHP version 5
  *
- * @category Netresearch
  * @package  JsonMapper
  * @author   Christian Weiske <cweiske@cweiske.de>
  * @license  OSL-3.0 http://opensource.org/licenses/osl-3.0
@@ -14,7 +13,6 @@
 /**
  * Unit test helper class for testing property mapping
  *
- * @category Netresearch
  * @package  JsonMapper
  * @author   Christian Weiske <cweiske@cweiske.de>
  * @license  OSL-3.0 http://opensource.org/licenses/osl-3.0
@@ -77,5 +75,28 @@ class JsonMapperTest_Array
      */
     public $pSimpleArrayObject;
 
+    /**
+     * Array of ArrayObject instances
+     * @var ArrayObject[]
+     */
+    public $pArrayObjectList;
+
+    /**
+     * Array of ArrayObject instances
+     * @var \namespacetest\model\MyArrayObject[]
+     */
+    public $pArrayObjectSubclassList;
+
+    /**
+     * 2D matrix of numbers
+     * @var int[][]
+     */
+    public $nMatrix;
+
+    /**
+     * 3D matrix of objects
+     * @var JsonMapperTest_Simple[][][]
+     */
+    public $pMultiverse;
 }
 ?>

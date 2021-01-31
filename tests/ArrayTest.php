@@ -10,9 +10,16 @@
  * @license  OSL-3.0 http://opensource.org/licenses/osl-3.0
  * @link     https://github.com/cweiske/jsonmapper
  */
+
+use namespacetest\model\MyArrayObject;
+
 require_once 'JsonMapperTest/Array.php';
 require_once 'JsonMapperTest/Broken.php';
 require_once 'JsonMapperTest/Simple.php';
+require_once 'JsonMapperTest/Zoo/Animal.php';
+require_once 'JsonMapperTest/Zoo/Zoo.php';
+require_once 'JsonMapperTest/Zoo/Cat.php';
+require_once 'JsonMapperTest/Zoo/Fish.php';
 
 /**
  * Unit tests for JsonMapper's array handling
@@ -23,7 +30,7 @@ require_once 'JsonMapperTest/Simple.php';
  * @license  OSL-3.0 http://opensource.org/licenses/osl-3.0
  * @link     https://github.com/cweiske/jsonmapper
  */
-class ArrayTest extends \PHPUnit_Framework_TestCase
+class ArrayTest extends \PHPUnit\Framework\TestCase
 {
     /**
      * Test for an array of classes "@var Classname[]"
@@ -35,7 +42,7 @@ class ArrayTest extends \PHPUnit_Framework_TestCase
             json_decode('{"typedArray":[{"str":"stringvalue"},{"fl":"1.2"}]}'),
             new JsonMapperTest_Array()
         );
-        $this->assertInternalType('array', $sn->typedArray);
+        $this->assertIsArray($sn->typedArray);
         $this->assertEquals(2, count($sn->typedArray));
         $this->assertInstanceOf('JsonMapperTest_Simple', $sn->typedArray[0]);
         $this->assertInstanceOf('JsonMapperTest_Simple', $sn->typedArray[1]);
@@ -54,7 +61,7 @@ class ArrayTest extends \PHPUnit_Framework_TestCase
             json_decode('{"typedSimpleArray":["2014-01-02",null,"2014-05-07"]}'),
             new JsonMapperTest_Array()
         );
-        $this->assertInternalType('array', $sn->typedSimpleArray);
+        $this->assertIsArray($sn->typedSimpleArray);
         $this->assertEquals(3, count($sn->typedSimpleArray));
         $this->assertInstanceOf('DateTime', $sn->typedSimpleArray[0]);
         $this->assertNull($sn->typedSimpleArray[1]);
@@ -98,7 +105,7 @@ class ArrayTest extends \PHPUnit_Framework_TestCase
             json_decode('{"flArray":[1.23,3.14,2.048]}'),
             new JsonMapperTest_Array()
         );
-        $this->assertInternalType('array', $sn->flArray);
+        $this->assertIsArray($sn->flArray);
         $this->assertEquals(3, count($sn->flArray));
         $this->assertTrue(is_float($sn->flArray[0]));
         $this->assertTrue(is_float($sn->flArray[1]));
@@ -115,7 +122,7 @@ class ArrayTest extends \PHPUnit_Framework_TestCase
             json_decode('{"flArray":{"foo":1.23,"bar":3.14,"baz":2.048}}'),
             new JsonMapperTest_Array()
         );
-        $this->assertInternalType('array', $sn->flArray);
+        $this->assertIsArray($sn->flArray);
         $this->assertEquals(3, count($sn->flArray));
         $this->assertTrue(is_float($sn->flArray['foo']));
         $this->assertTrue(is_float($sn->flArray['bar']));
@@ -132,11 +139,11 @@ class ArrayTest extends \PHPUnit_Framework_TestCase
             json_decode('{"strArray":["str",false,2.048]}'),
             new JsonMapperTest_Array()
         );
-        $this->assertInternalType('array', $sn->strArray);
+        $this->assertIsArray($sn->strArray);
         $this->assertEquals(3, count($sn->strArray));
-        $this->assertInternalType('string', $sn->strArray[0]);
-        $this->assertInternalType('string', $sn->strArray[1]);
-        $this->assertInternalType('string', $sn->strArray[2]);
+        $this->assertIsString($sn->strArray[0]);
+        $this->assertIsString($sn->strArray[1]);
+        $this->assertIsString($sn->strArray[2]);
     }
 
     /**
@@ -149,11 +156,11 @@ class ArrayTest extends \PHPUnit_Framework_TestCase
             json_decode('{"strArrayV2":["str",false,2.048]}'),
             new JsonMapperTest_Array()
         );
-        $this->assertInternalType('array', $sn->strArrayV2);
+        $this->assertIsArray($sn->strArrayV2);
         $this->assertEquals(3, count($sn->strArrayV2));
-        $this->assertInternalType('string', $sn->strArrayV2[0]);
-        $this->assertInternalType('string', $sn->strArrayV2[1]);
-        $this->assertInternalType('string', $sn->strArrayV2[2]);
+        $this->assertIsString($sn->strArrayV2[0]);
+        $this->assertIsString($sn->strArrayV2[1]);
+        $this->assertIsString($sn->strArrayV2[2]);
     }
 
     /**
@@ -208,18 +215,16 @@ class ArrayTest extends \PHPUnit_Framework_TestCase
         );
         $this->assertInstanceOf('ArrayObject', $sn->pSimpleArrayObject);
         $this->assertEquals(2, count($sn->pSimpleArrayObject));
-        $this->assertInternalType('int', $sn->pSimpleArrayObject['eins']);
-        $this->assertInternalType('int', $sn->pSimpleArrayObject['zwei']);
+        $this->assertIsInt($sn->pSimpleArrayObject['eins']);
+        $this->assertIsInt($sn->pSimpleArrayObject['zwei']);
         $this->assertEquals(1, $sn->pSimpleArrayObject['eins']);
         $this->assertEquals(1, $sn->pSimpleArrayObject['zwei']);
     }
 
-    /**
-     * @expectedException JsonMapper_Exception
-     * @expectedExceptionMessage JSON property "flArray" must be an array, integer given
-     */
     public function testInvalidArray()
     {
+        $this->expectException(JsonMapper_Exception::class);
+        $this->expectExceptionMessage('JSON property "flArray" must be an array, integer given');
         $jm = new JsonMapper();
         $sn = $jm->map(
             json_decode('{"flArray": 4 }'),
@@ -227,12 +232,10 @@ class ArrayTest extends \PHPUnit_Framework_TestCase
         );
     }
 
-    /**
-     * @expectedException JsonMapper_Exception
-     * @expectedExceptionMessage JSON property "pArrayObject" must be an array, double given
-     */
     public function testInvalidArrayObject()
     {
+        $this->expectException(JsonMapper_Exception::class);
+        $this->expectExceptionMessage('JSON property "pArrayObject" must be an array, double given');
         $jm = new JsonMapper();
         $sn = $jm->map(
             json_decode('{"pArrayObject": 4.2 }'),
@@ -255,12 +258,11 @@ class ArrayTest extends \PHPUnit_Framework_TestCase
 
     /**
      * An ArrayObject which may not be null but is.
-     *
-     * @expectedException JsonMapper_Exception
-     * @expectedExceptionMessage JSON property "pArrayObject" in class "JsonMapperTest_Array" must not be NULL
      */
     public function testArrayObjectInvalidNull()
     {
+        $this->expectException(JsonMapper_Exception::class);
+        $this->expectExceptionMessage('JSON property "pArrayObject" in class "JsonMapperTest_Array" must not be NULL');
         $jm = new JsonMapper();
         $sn = $jm->map(
             json_decode('{"pArrayObject": null}'),
@@ -326,5 +328,189 @@ class ArrayTest extends \PHPUnit_Framework_TestCase
         $code .= 'class ' . $class . '{}';
         eval($code);
     }
+
+    /**
+     * Lists or ArrayObject instances.
+     */
+    public function testArrayObjectList()
+    {
+        $jm = new JsonMapper();
+        $jm->bStrictNullTypes = false;
+        $sn = $jm->map(
+            json_decode('{"pArrayObjectList": [{"x":"X"},{"y":"Y"}]}'),
+            new JsonMapperTest_Array()
+        );
+        $this->assertNotNull($sn->pArrayObjectList);
+        $this->assertIsArray($sn->pArrayObjectList);
+        $this->assertCount(2, $sn->pArrayObjectList);
+        $this->assertContainsOnlyInstancesOf(\ArrayObject::class, $sn->pArrayObjectList);
+        // test first element data
+        $ao = $sn->pArrayObjectList[0];
+        $this->assertEquals(['x' => 'X'], $ao->getArrayCopy());
+    }
+
+    /**
+     * Lists or ArrayObject subclass instances.
+     */
+    public function testArrayObjectSubclassList()
+    {
+        $jm = new JsonMapper();
+        $jm->bStrictNullTypes = false;
+        $sn = $jm->map(
+            json_decode('{"pArrayObjectSubclassList": [{"x":"X"},{"y":"Y"}]}'),
+            new JsonMapperTest_Array()
+        );
+        $this->assertNotNull($sn->pArrayObjectSubclassList);
+        $this->assertIsArray($sn->pArrayObjectSubclassList);
+        $this->assertCount(2, $sn->pArrayObjectSubclassList);
+        $this->assertContainsOnlyInstancesOf(MyArrayObject::class, $sn->pArrayObjectSubclassList);
+        // test first element data
+        $ao = $sn->pArrayObjectSubclassList[0];
+        $this->assertEquals(['x' => 'X'], $ao->getArrayCopy());
+    }
+
+    /**
+     * Test for an array of array of integers "@var int[][]"
+     */
+    public function testNMatrix()
+    {
+        $jm = new JsonMapper();
+        $sn = $jm->map(
+            json_decode('{"nMatrix":[[1,2],[3,4],[5]]}'),
+            new JsonMapperTest_Array()
+        );
+        $this->assertIsArray($sn->nMatrix);
+        $this->assertEquals(3, count($sn->nMatrix));
+        $this->assertIsArray($sn->nMatrix[0]);
+        $this->assertIsArray($sn->nMatrix[1]);
+        $this->assertIsArray($sn->nMatrix[2]);
+
+        $this->assertEquals(2, count($sn->nMatrix[0]));
+        $this->assertIsInt($sn->nMatrix[0][0]);
+        $this->assertIsInt($sn->nMatrix[0][1]);
+
+        $this->assertEquals(2, count($sn->nMatrix[1]));
+        $this->assertEquals(1, count($sn->nMatrix[2]));
+    }
+
+    /**
+     * Test for an array of arrays of arrays of objects
+     * "@var JsonMapper_Simple[][][]"
+     */
+    public function testObjectMultiverse()
+    {
+        $jm = new JsonMapper();
+        $sn = $jm->map(
+            json_decode('{"pMultiverse":[[[{"pint":23}]]]}'),
+            new JsonMapperTest_Array()
+        );
+        $this->assertIsArray($sn->pMultiverse);
+        $this->assertEquals(1, count($sn->pMultiverse));
+
+        $this->assertIsArray($sn->pMultiverse[0]);
+        $this->assertEquals(1, count($sn->pMultiverse[0]));
+
+        $this->assertIsArray($sn->pMultiverse[0][0]);
+        $this->assertEquals(1, count($sn->pMultiverse[0][0]));
+
+        $this->assertInstanceOf(
+            'JsonMapperTest_Simple', $sn->pMultiverse[0][0][0]
+        );
+    }
+
+    /**
+     * Dead simple mapArray test
+     */
+    public function testMapArray()
+    {
+        $jm = new JsonMapper();
+        $mapped = $jm->mapArray(
+            json_decode('[1,2,3]'),
+            []
+        );
+        $this->assertEquals([1, 2, 3], $mapped);
+    }
+
+    /**
+     * Make sure we're not modifying array keys
+     * as we do with object names (getSafeName)
+     */
+    public function testMapArrayStrangeKeys()
+    {
+        $jm = new JsonMapper();
+        $mapped = $jm->mapArray(
+            ['en-US' => 'foo', 'de-DE' => 'bar'],
+            []
+        );
+        $this->assertEquals(['en-US' => 'foo', 'de-DE' => 'bar'], $mapped);
+    }
+
+    /**
+     * Map a JSON object to an array with a key that contains a hyphen.
+     */
+    public function testMapTypedSimpleArrayFromObject()
+    {
+        $jm = new JsonMapper();
+        $sn = $jm->map(
+            json_decode('{"typedSimpleArray":{"en-US":"2014-01-02"}}'),
+            new JsonMapperTest_Array()
+        );
+        $this->assertIsArray($sn->typedSimpleArray);
+        $this->assertEquals(1, count($sn->typedSimpleArray));
+        $this->assertArrayHasKey('en-US', $sn->typedSimpleArray);
+        $this->assertInstanceOf('DateTime', $sn->typedSimpleArray['en-US']);
+        $this->assertEquals(
+            '2014-01-02', $sn->typedSimpleArray['en-US']->format('Y-m-d')
+        );
+    }
+
+    /**
+     * Test for "@var string[]" with object value
+     */
+    public function testObjectInsteadOfString()
+    {
+        $this->expectException(JsonMapper_Exception::class);
+        $this->expectExceptionMessage('JSON property "strArray" is an array of type "string" but contained a value of type "object"');
+        $jm = new JsonMapper();
+        $sn = $jm->map(
+            json_decode('{"strArray":[{}]}'),
+            new JsonMapperTest_Array()
+        );
+        $this->assertIsArray($sn->strArray);
+        $this->assertNotEmpty($sn->strArray);
+    }
+
+    public function testPolymorphicArray()
+    {
+        $zooJson = <<<JSON
+        {
+            "animals": [
+                {
+                    "kind": "cat",
+                    "name": "Lion"
+                },
+                {
+                    "kind": "fish",
+                    "name": "Clown Fish"
+                }
+            ]
+        }
+JSON;
+
+        $jm = new JsonMapper();
+        $jm->classMap[Animal::class] = function ($class, $jvalue) {
+            return Animal::determineClass($class, $jvalue);
+        };
+
+        $zoo = $jm->map(json_decode($zooJson), new Zoo());
+        $this->assertEquals(2, count($zoo->animals));
+
+        $this->assertInstanceOf(Cat::class, $zoo->animals[0]);
+        $this->assertEquals('Lion', $zoo->animals[0]->name);
+
+        $this->assertInstanceOf(Fish::class, $zoo->animals[1]);
+        $this->assertEquals('Clown Fish', $zoo->animals[1]->name);
+    }
 }
+
 ?>

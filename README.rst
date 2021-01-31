@@ -2,8 +2,8 @@
 JsonMapper - map nested JSON structures onto PHP classes
 ********************************************************
 
-.. image:: https://api.travis-ci.org/spysystem/jsonmapper.png
-   :target: https://travis-ci.org/spysystem/jsonmapper
+.. image:: https://api.travis-ci.com/cweiske/jsonmapper.svg
+   :target: https://travis-ci.com/github/cweiske/jsonmapper
    :align: right
 
 Takes data retrieved from a JSON__ web service and converts them
@@ -177,6 +177,10 @@ a property:
    #. If no type could be detected, the plain JSON value is passed
       to the setter method.
 
+#. Class property types (since PHP 7.4)::
+
+     public Contact $person;
+
 #. ``@var $type`` docblock annotation of class properties::
 
     /**
@@ -185,8 +189,10 @@ a property:
     public $person;
 
    The property has to be public to be used directly.
-   Protected and private properties cannot be set; you will have to
-   provide a setter method for them.
+   You may also use `$bIgnoreVisibility`__ to utilize
+   protected and private properties.
+
+   .. __: #prop-bignorevisibility
 
    If no type could be detected, the property gets the plain JSON value set.
 
@@ -194,6 +200,17 @@ a property:
    in a case-insensitive manner.
    A JSON property ``isempty`` would then be mapped to a PHP property
    ``isEmpty``.
+
+   .. note::
+      You have to provide the fully qualified namespace
+      for the type to work. Relative class names are evaluated
+      in the context of the current classes namespace, NOT
+      respecting any imports that may be present.
+
+      PHP does not provide the imports via Reflection; the comment text only
+      contains the literal text of the type.
+      For performance reasons JsonMapper does not parse the source code on its
+      own to detect and expand any imports.
 
 
 Supported type names
@@ -214,6 +231,10 @@ Supported type names
 
   - ``int[]``
   - ``Contact[]``
+- Multidimensional arrays:
+
+  - ``int[][]``
+  - ``TreeDeePixel[][][]``
 - ArrayObjects of simple types and class names:
 
   - ``ContactList[Contact]``
@@ -275,6 +296,22 @@ shall get instantiated instead:
 
 This would create objects of type ``Bar`` when a variable is defined to be
 of type ``Foo``.
+
+It is also possible to use a callable in case the actual implementation class
+needs to be determined dynamically (for example in case of a union).
+The mapped class ('Foo' in the example below) and the Json data are passed as
+parameters into the call.
+
+.. code:: php
+
+    $mapper = function ($class, $jvalue) {
+        // examine $class and $jvalue to figure out what class to use...
+        return 'DateTime';
+    };
+
+    $jm = new JsonMapper();
+    $jm->classMap['Foo'] = $mapper;
+    $jm->map(...);
 
 
 Nullables
@@ -372,9 +409,20 @@ an exception when ``$bExceptionOnMissingData`` is activated:
     $jm->bExceptionOnMissingData = true;
     $jm->map(...);
 
+Option ``$bRemoveUndefinedAttributes`` causes JsonMapper to remove properties
+from the final object if they have not been in the JSON data:
+
+.. code:: php
+
+    $jm = new JsonMapper();
+    $jm->bRemoveUndefinedAttributes = true;
+    $jm->map(...);
+
+
+.. _prop-bignorevisibility:
 
 Private properties and functions
---------------------------------
+================================
 You can allow mapping to private and protected properties and
 setter methods by setting ``$bIgnoreVisibility`` to true:
 
@@ -386,7 +434,7 @@ setter methods by setting ``$bIgnoreVisibility`` to true:
 
 
 Simple types instead of objects
--------------------------------
+===============================
 When a variable's type is a class and JSON data is a simple type
 like ``string``, JsonMapper passes this value to the class' constructor.
 
@@ -402,7 +450,7 @@ An exception is then thrown in such cases.
 
 
 Passing arrays to ``map()``
----------------------------
+===========================
 You may wish to pass array data into ``map()`` that you got by calling
 
 .. code:: php
@@ -420,45 +468,47 @@ You can circumvent that by setting ``$bEnforceMapType`` to ``false``:
     $jm->map(...);
 
 
+Post-mapping callback
+=====================
+JsonMapper is able to call a custom method directly on each object after
+mapping it is finished:
+
+.. code:: php
+
+    $jm = new JsonMapper();
+    $jm->postMappingMethod = 'afterMapping';
+    $jm->map(...);
+
+Now ``afterMapping()`` is called on each mapped object
+(if the class has that method).
+
+
 ============
 Installation
 ============
-
-via Composer
-============
-From Packagist__::
+Via Composer from Packagist__::
 
     $ composer require netresearch/jsonmapper
 
 __ https://packagist.org/packages/netresearch/jsonmapper
 
 
-via PEAR
-========
-.. note::
-   With version 1.0.0 JsonMapper moved to PEAR channel
-   https://zustellzentrum.cweiske.de/
-
-From our `PEAR channel`__::
-
-    $ pear channel-discover zustellzentrum.cweiske.de
-    $ pear install zz/jsonmapper
-
-__ https://zustellzentrum.cweiske.de/
-
-
-
-
 ================
 Related software
 ================
+Alternatives
+
 - `Jackson's data binding`__ for Java
 - `Johannes Schmitt Serializer`__ for PHP
 - `metassione`__ for PHP
+- `Cartographer`__ for PHP
+- `Data Transfer Object`__ for PHP
 
-__ http://wiki.fasterxml.com/JacksonDataBinding
+__ https://fasterxml.github.io/jackson-databind/
 __ http://jmsyst.com/libs/serializer
 __ https://github.com/drbonzo/metassione
+__ https://github.com/jonjomckay/cartographer
+__ https://github.com/spatie/data-transfer-object
 
 
 ================
