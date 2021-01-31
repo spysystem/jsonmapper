@@ -8,13 +8,13 @@ require_once __DIR__ . '/model/MyArrayObject.php';
 require_once __DIR__ . '/model/User.php';
 require_once __DIR__ . '/model/UserList.php';
 require_once __DIR__ . '/../othernamespace/Foo.php';
-require_once __DIR__ . '/../Foo2.php';
+
 /**
  * Class NamespaceWithUseClauseTest
  *
  * @package namespacetest
  */
-class NamespaceWithUseClauseTest extends \PHPUnit_Framework_TestCase
+class NamespaceWithUseClauseTest extends \PHPUnit\Framework\TestCase
 {
     public function testMapArrayNamespace()
     {
@@ -34,51 +34,13 @@ class NamespaceWithUseClauseTest extends \PHPUnit_Framework_TestCase
         $this->assertInstanceOf('\namespacetest\Unit', $res->units[0]);
     }
 
-
-    public function testMapClassMatrixNamespace()
+    public function testMapTypedSimpleArrayNamespace()
     {
         $mapper = new \JsonMapper();
-        $json =
-            '{"unit_matrix":[[{"value":"1.2"}, {"value":"2.2"}], [{"value":"3.2"}, {"value":"4.2"}]]}';
-        /** @var UnitDataWithUseClause $res */
+        $json = '{"units_typed":[{"value":"1.2"}]}';
         $res = $mapper->map(json_decode($json), new UnitDataWithUseClause());
         $this->assertInstanceOf('\namespacetest\UnitDataWithUseClause', $res);
-        $this->assertInstanceOf('\namespacetest\Unit', $res->unit_matrix[1][1]);
-    }
-
-    public function testMapIntMatrixNamespace()
-    {
-        $mapper = new \JsonMapper();
-        $json = '{"int_matrix":[[1, 2], [3, 4]]}';
-        /** @var UnitDataWithUseClause $res */
-        $res = $mapper->map(json_decode($json), new UnitDataWithUseClause());
-        $this->assertInstanceOf('\namespacetest\UnitDataWithUseClause', $res);
-        $this->assertEquals(3, $res->int_matrix[1][0]);
-    }
-
-    public function testMultidimensionalArrayNamespace()
-    {
-        $mapper = new \JsonMapper();
-        $json =
-            '{"multidimensional_array":[[[[{"name": "John Smith"},{"name": "Scarlet Johansson"}]]], []]}';
-        /** @var UnitDataWithUseClause $res */
-        $res = $mapper->map(json_decode($json), new UnitDataWithUseClause());
-        $this->assertInstanceOf('\namespacetest\UnitDataWithUseClause', $res);
-        $this->assertInstanceOf('\namespacetest\model\User',
-            $res->multidimensional_array[0][0][0][0]);
-        $this->assertEquals('Scarlet Johansson',
-            $res->multidimensional_array[0][0][0][1]->name);
-    }
-
-    public function testMapClassWithNoNamespace()
-    {
-        $mapper = new \JsonMapper();
-        $json = '{"foo2":{"name": "John Smith"}}';
-        /** @var UnitDataWithUseClause $res */
-        $res = $mapper->map(json_decode($json), new UnitDataWithUseClause());
-        $this->assertInstanceOf('\namespacetest\UnitDataWithUseClause', $res);
-        $this->assertInstanceOf('Foo2', $res->foo2);
-        $this->assertEquals('John Smith', $res->foo2->name);
+        $this->assertInstanceOf('\namespacetest\Unit', $res->units_typed[0]);
     }
 
     public function testMapSimpleStringArrayNamespace()
@@ -119,12 +81,10 @@ class NamespaceWithUseClauseTest extends \PHPUnit_Framework_TestCase
         $this->assertInstanceOf('\namespacetest\model\User', $res->user);
     }
 
-    /**
-     * @expectedException JsonMapper_Exception
-     * @expectedExceptionMessage Empty type at property "namespacetest\UnitDataWithUseClause::$empty"
-     */
     public function testMapEmpty()
     {
+        $this->expectExceptionMessage('Empty type at property "namespacetest\UnitDataWithUseClause::$empty"');
+        $this->expectException(JsonMapper_Exception::class);
         $mapper = new \JsonMapper();
         $json = '{"empty":{}}';
         /* @var \namespacetest\UnitDataWithUseClause $res */
@@ -148,7 +108,7 @@ class NamespaceWithUseClauseTest extends \PHPUnit_Framework_TestCase
         $res = $mapper->map(json_decode($json), new UnitDataWithUseClause());
         $this->assertInstanceOf('\namespacetest\UnitDataWithUseClause', $res);
         $this->assertInstanceOf('\namespacetest\model\MyArrayObject', $res->aodata);
-        $this->assertInternalType('string', $res->aodata[0]);
+        $this->assertIsString($res->aodata[0]);
         $this->assertEquals('foo', $res->aodata[0]);
     }
 
@@ -170,4 +130,3 @@ class NamespaceWithUseClauseTest extends \PHPUnit_Framework_TestCase
         );
     }
 }
-?>

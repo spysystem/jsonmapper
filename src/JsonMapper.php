@@ -120,6 +120,16 @@ class JsonMapper
     protected $arInspectedClasses = array();
 
     /**
+     * Runtime cache for use clauses. Consists of an array of arrays, where the
+     * index for the first level is the full class name. Each sub-array will contain
+     * the "use" clauses found on the file regarding that class. This expects that
+     * the class respects PSR-1, which means one single class per file, and thus one
+     * single namespace. http://www.php-fig.org/psr/psr-1/#namespace-and-class-names
+     *
+     * @var string[][]
+     */
+    protected $arrUseClauses = [];
+    /**
      * Method to call on each object after deserialization is done.
      *
      * Is only called if it exists on the object.
@@ -135,6 +145,7 @@ class JsonMapper
      * @param object       $object Object to map $json data into
      *
      * @return mixed Mapped object is returned.
+     * @throws JsonMapper_Exception
      * @see    mapArray()
      */
     public function map($json, $object)
@@ -507,6 +518,9 @@ class JsonMapper
                     return array(true, $rmeth, null, $isNullable);
                 }
                 list($type) = explode(' ', trim($annotations['param'][0]));
+
+                $type = $this->getFullyQualifiedType($rc, $type);
+
                 return array(true, $rmeth, $type, $this->isNullable($type));
             }
         }
@@ -565,6 +579,8 @@ class JsonMapper
                 //support "@var type description"
                 list($type) = explode(' ', $annotations['var'][0]);
 
+                $type = $this->getFullyQualifiedType($rc, $type);
+
                 return array(true, $rprop, $type, $this->isNullable($type));
             } else {
                 //no setter, private property
@@ -574,6 +590,114 @@ class JsonMapper
 
         //no setter, no property
         return array(false, null, null, false);
+    }
+
+    /**
+     * Splits the $type string from the phpdoc, and finds the FQN for each type found
+     *
+     * @param ReflectionClass $rc
+     * @param string          $type
+     *
+     * @return string
+     */
+    protected function getFullyQualifiedType(ReflectionClass $rc, string $type): string
+    {
+        $arrTypes = [];
+        $arrMatch = [];
+        foreach(explode('|', $type) as $strType) {
+            $strArraySection = '';
+            if(preg_match('/(.*?)(\[.*\])$/', $strType, $arrMatch) === 1) {
+                $strType = $arrMatch[1];
+                $strArraySection = $arrMatch[2];
+            }
+            $strFQNType = $this->getFQN($rc, $strType);
+            if($strArraySection !== '') {
+                if(preg_match('/^\[([\w]+)\]$/', $strArraySection, $arrMatch) === 1) {
+                    $strArraySection = '['.$this->getFQN($rc, $arrMatch[1]).']';
+                }
+            }
+            $arrTypes[] = $strFQNType.$strArraySection;
+        }
+        return implode('|', $arrTypes);
+
+
+    }
+
+    /**
+     * Gets the FQN for a type
+     *
+     * @param ReflectionClass $rc
+     * @param string          $strType
+     *
+     * @return string
+     */
+    protected function getFQN(ReflectionClass $rc, string $strType): string
+    {
+        # If type starts with \, no need to append namespaces on it
+        if (strpos($strType, '\\') === 0) {
+            return $strType;
+        }
+        $arrUseClauses = $this->getUseClauses($rc);
+
+        if (count($arrUseClauses) === 0) {
+            return $strType;
+        }
+
+        # If there is a perfect match for the type within the use clauses, prepend a \ and return it -
+        # this will guarantee that we get the correct FQN for it, even if it belongs to the root namespace
+        if (array_key_exists($strType, $arrUseClauses)) {
+            return '\\' . $strType;
+        }
+
+        # If the type contains a relative qualified name, we need to find the first part of if within the 'use'
+        # clauses. To do that, we take the first sub-path of the type and search it within the use clauses. This
+        # should return exactly one match, since PHP does not allow ambiguous class names.
+        if (strpos($strType, '\\') !== false) {
+            # Gets first sub-path
+            $arrExplodedType = explode('\\', $strType, 2);
+            $strNSSubPath = $arrExplodedType[0];
+            # Get use clause that end with the found sub-path (There can be only one! #highlanderfeelings)
+            $arrMatchingUseClauses = preg_grep('/^(.*\\\\' . $strNSSubPath . '|' . $strNSSubPath . ')$/', $arrUseClauses);
+            if (count($arrMatchingUseClauses) === 1) {
+                return '\\' . preg_replace('/(.*)' . $strNSSubPath . '$/', '$1', reset($arrMatchingUseClauses)) . $strType;
+            }
+        } else {
+            # The last check against use clauses is when type is a SFQN and its FQN is in the use clauses:
+            $arrMatchingUseClauses = preg_grep('/\\\\'.$strType.'$/', $arrUseClauses);
+            if (count($arrMatchingUseClauses) === 1) {
+                return '\\'.reset($arrMatchingUseClauses);
+            }
+        }
+
+        # If nothing else was triggered, simply return the unchanged type
+        return $strType;
+    }
+
+    /**
+     * Finds all "use" clauses inside the class file, and returns a string[] with the found namespace names
+     * @param ReflectionClass $rc
+     *
+     * @return string[]
+     */
+    protected function getUseClauses(ReflectionClass $rc): array
+    {
+        $strClassName = $rc->getName();
+        if (!array_key_exists($strClassName, $this->arrUseClauses)) {
+
+            $arrLines = file($rc->getFileName(), FILE_SKIP_EMPTY_LINES|FILE_IGNORE_NEW_LINES);
+
+            if ($arrLines && count($arrLines)) {
+                $arrUseLines = preg_grep('/^\s*use\s+[\w\\\\]+;/', $arrLines);
+
+                # strip out the 'use ' part
+                $this->arrUseClauses[$strClassName] = preg_replace('/(^\s*use\s+)([\w\\\\]+);/', '$2', $arrUseLines);
+
+                # makes keys match values, so that $arr[x] = x;
+                $this->arrUseClauses[$strClassName] = array_combine($this->arrUseClauses[$strClassName], $this->arrUseClauses[$strClassName]);
+            }
+        }
+
+        return $this->arrUseClauses[$strClassName];
     }
 
     /**

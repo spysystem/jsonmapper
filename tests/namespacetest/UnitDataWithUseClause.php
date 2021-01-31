@@ -5,7 +5,6 @@ use namespacetest\model;
 use namespacetest\model\User;
 use namespacetest\model\UserList;
 use othernamespace\Foo;
-use Foo2;
 
 /**
  * Class UnitDataWithUseClause
@@ -20,29 +19,12 @@ class UnitDataWithUseClause
     public $data;
 
     /**
-     * @var Foo2
-     */
-    public $foo2;
-
-    /**
      * @var Unit[]
      */
     public $units;
 
-    /**
-     * @var Unit[][]
-     */
-    public $unit_matrix;
-
-    /**
-     * @var int[][]
-     */
-    public $int_matrix;
-
-    /**
-     * @var User[][][][]
-     */
-    public $multidimensional_array;
+    /** @var Unit[] */
+    public array $units_typed;
 
     /**
      * @var string[]
@@ -69,7 +51,7 @@ class UnitDataWithUseClause
      */
     public $aodata;
 
-    public $internalData = array();
+    public $internalData = [];
 
 
     /**
@@ -80,4 +62,3 @@ class UnitDataWithUseClause
         $this->internalData['namespacedTypeHint'] = $foo;
     }
 }
-?>
