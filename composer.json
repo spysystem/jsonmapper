@@ -29,7 +29,7 @@
         "issues": "https://github.com/cweiske/jsonmapper/issues"
     },
     "require":{
-        "php": "7.1 - 8.1",
+        "php": "~8.1.0 || ~8.5.0",
         "ext-spl": "*",
         "ext-json": "*",
         "ext-pcre": "*",

@@ -358,7 +358,6 @@ class JsonMapper
             $refDeserializePostMethod = $rc->getMethod(
                 $this->postMappingMethod
             );
-            $refDeserializePostMethod->setAccessible(true);
             $refDeserializePostMethod->invoke(
                 $object, ...$this->postMappingMethodArguments
             );
@@ -796,9 +795,6 @@ class JsonMapper
     protected function setProperty(
         $object, $accessor, $value
     ) {
-        if (!$accessor->isPublic() && $this->bIgnoreVisibility) {
-            $accessor->setAccessible(true);
-        }
         if ($accessor instanceof ReflectionProperty) {
             $accessor->setValue($object, $value);
         } else if (is_array($value) && $this->hasVariadicArrayType($accessor)) {
@@ -857,7 +853,7 @@ class JsonMapper
      */
     protected function getMappedType($type, $jvalue = null)
     {
-        if (isset($this->classMap[$type])) {
+        if ($type !== null && isset($this->classMap[$type])) {
             $target = $this->classMap[$type];
         } else if (is_string($type) && $type !== '' && $type[0] == '\\'
             && isset($this->classMap[substr($type, 1)])
